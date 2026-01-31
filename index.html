@@ -26,6 +26,8 @@
       background: radial-gradient(1200px 800px at 50% 30%, #1b2a6b 0%, var(--bg1) 50%, var(--bg2) 100%);
       color: var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif;
+      overflow: hidden; /* Prevent scroll */
+      touch-action: none; /* Prevent browser gestures */
     }
 
     .wrap {
@@ -1171,6 +1173,7 @@
         // bridge
         bridgeLen: 0,
         bridgeAngle: 0, // 0=up, -90=flat
+        bridgeDropVel: 0,
         // platforms
         platforms: [],
         curIndex: 0,
@@ -1197,6 +1200,7 @@
         state.targetCamX = 0;
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
+        state.bridgeDropVel = 0;
         state.platforms = [];
         state.curIndex = 0;
 
@@ -1253,6 +1257,7 @@
         state.holding = true;
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
+        state.bridgeDropVel = 0;
         beep(740, .04, "triangle", .02);
       }
       function onHoldEnd() {
@@ -1348,6 +1353,7 @@
 
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
+        state.bridgeDropVel = 0;
         state.targetCamX = cp.x - 70;
 
         showOnly(null);
@@ -1428,6 +1434,7 @@
         // reset bridge
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
+        state.bridgeDropVel = 0;
 
         syncHUD();
       }
@@ -1526,26 +1533,51 @@
         ctx.restore();
       }
 
+      // ------------------ Character & Physics Tuning ------------------
+      const PHYSICS = {
+        gravity: 2800, // degrees/s^2 for bridge
+        bounceHeight: 14,
+        bounceFreq: 0.15
+      };
+
       function drawCharacterMarker() {
-        // simple marker on current platform center (demo for skin)
         const cp = curPlatform();
         if (!cp) return;
-        const x = cp.x + cp.w * 0.5 - state.camX;
-        const y = cp.y - 22;
+        
+        // Calculate bounce based on camera X (distance traveled)
+        // Only bounce when running and not performing actions
+        const bounce = state.running && !state.holding && !state.dropping
+          ? Math.abs(Math.sin(state.camX * 0.04) * PHYSICS.bounceHeight)
+          : 0;
+
+        const size = 28;
+        // Center on platform
+        const x = cp.x + cp.w * 0.5 - state.camX - size / 2;
+        const y = cp.y - size - bounce;
 
         const ch = CHARACTERS.find(c => c.id === save.equippedChar) || CHARACTERS[0];
+        
         ctx.save();
+        
+        // Body
         ctx.shadowColor = ch.color;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 15;
         ctx.fillStyle = ch.color;
-        ctx.beginPath();
-        ctx.arc(x, y, 9, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 0.35;
+        ctx.fillRect(x, y, size, size);
+
+        // Highlight/Shading (subtle)
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fillRect(x, y, size, size*0.2);
+
+        // Eyes (White)
+        ctx.shadowBlur = 0;
         ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(x - 2, y - 2, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(x + size * 0.55, y + size * 0.25, size * 0.3, size * 0.3);
+
+        // Pupil (Black)
+        ctx.fillStyle = "#111";
+        ctx.fillRect(x + size * 0.65, y + size * 0.35, size * 0.12, size * 0.12);
+
         ctx.restore();
       }
 
@@ -1637,10 +1669,13 @@
             state.bridgeLen = Math.min(state.bridgeLen, 560);
           }
           if (state.dropping) {
-            state.bridgeAngle -= state.rotateSpeed * dt;
+            state.bridgeDropVel += PHYSICS.gravity * dt;
+            state.bridgeAngle -= state.bridgeDropVel * dt;
             if (state.bridgeAngle <= -90) {
               state.bridgeAngle = -90;
               state.dropping = false;
+              state.bridgeDropVel = 0;
+              // Add a small shake or impact effect here if desired
               evaluateLanding();
             }
           }
