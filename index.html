@@ -39,15 +39,40 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 20px 0;
+      justify-content: flex-start; /* Changed from center to allow content flow */
+      padding: 0;
       box-sizing: border-box;
     }
+    
+    /* Site Header */
+    .site-header {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .site-nav {
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .site-nav a {
+      color: var(--text);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .site-nav a:hover { opacity: 1; color: var(--neon); }
 
     #game {
-      flex-shrink: 0; /* Prevent game shrinking */
+      flex-shrink: 0;
       width: min(520px, 100vw);
-      height: min(920px, 100vh);
+      height: min(920px, 85vh); /* Slightly reduced max-height to fit header */
       aspect-ratio: 9/16;
       border-radius: 18px;
       box-shadow: 0 22px 70px rgba(0, 0, 0, .55);
@@ -55,6 +80,57 @@
       position: relative;
       background: radial-gradient(900px 700px at 50% 20%, rgba(90, 120, 255, .22), transparent 55%), radial-gradient(900px 700px at 60% 65%, rgba(177, 108, 255, .18), transparent 55%), linear-gradient(180deg, rgba(0, 0, 0, .25), rgba(0, 0, 0, .35));
     }
+
+    /* SEO Content Section */
+    .content-section {
+      width: 100%;
+      max-width: 800px;
+      padding: 40px 20px;
+      color: rgba(234, 246, 255, 0.8);
+      line-height: 1.7;
+      text-align: left;
+    }
+    .content-section h2 {
+      color: var(--neon);
+      border-bottom: 1px solid rgba(88, 240, 255, 0.2);
+      padding-bottom: 10px;
+      margin-top: 40px;
+      font-size: 24px;
+    }
+    .content-section h3 {
+      color: var(--good);
+      margin-top: 25px;
+      font-size: 18px;
+    }
+    .content-section p {
+      margin-bottom: 15px;
+    }
+    .content-section ul {
+      margin-bottom: 20px;
+      padding-left: 20px;
+    }
+    .content-section li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- Header for Site Structure -->
+    <header class="site-header">
+      <nav class="site-nav">
+        <a href="#">HOME</a>
+        <a href="#guide">GAME GUIDE</a>
+        <a href="#faq">FAQ</a>
+        <a href="privacy.html">PRIVACY</a>
+      </nav>
+    </header>
+
+    <div id="game">
+      <canvas id="c"></canvas>
+      <!-- ... (Game HUD and Panels remain unchanged) ... -->
+
 
     canvas {
       display: block;
@@ -899,26 +975,55 @@
 
     </div>
 
-    <div style="max-width: 500px; padding: 20px; text-align: center; color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.6;">
-      <h2 style="font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 10px;">How to Play Sky Bridge Z</h2>
+    <!-- SEO & AdSense Content Section -->
+    <div class="content-section">
+      <h2 id="guide">Sky Bridge Z: The Ultimate Bridge Building Challenge</h2>
       <p>
-        Sky Bridge Z is an exciting endless runner game where you build bridges to cross perilous gaps. 
-        Hold the screen to extend your bridge, and release to drop it. 
-        Aim for the center of the platform for a <b>Perfect</b> score and bonus gems!
+        Welcome to <strong>Sky Bridge Z</strong>, the most addictive endless bridge-building game on the web. 
+        Your mission is simple yet challenging: build bridges to cross the endless void of the galaxy. 
+        Timing and precision are key as you stretch your bridge to land safely on the next platform.
       </p>
+
+      <h3>How to Play</h3>
+      <ul>
+        <li><strong>Hold to Build:</strong> Tap and hold the screen (or mouse) to extend your bridge. The longer you hold, the longer it gets.</li>
+        <li><strong>Release to Drop:</strong> Release your finger to let the bridge fall. If it lands on the platform, you cross!</li>
+        <li><strong>Aim for Perfect:</strong> Try to land your bridge exactly in the center (red dot) of the platform to earn a "Perfect" score and gain bonus multipliers.</li>
+      </ul>
+
+      <h3>Tips & Tricks for High Scores</h3>
       <p>
-        Unlock new characters like Ninja and Rabbit, customize your bridge with Neon and Cyber themes, 
-        and challenge your friends on the global leaderboard.
+        Mastering Sky Bridge Z takes practice. Here are some pro tips to help you climb the global leaderboard:
       </p>
-      <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center;">
-        <a href="#" style="color: inherit; text-decoration: none;">Privacy Policy</a>
+      <ul>
+        <li><strong>Rhythm is Key:</strong> Find a rhythm. The bridge grows at a constant speed, so memorize the timing for different gap sizes.</li>
+        <li><strong>Collect Gems:</strong> Use your earned gems to unlock cool skins like the Ninja or Rabbit, and beautiful bridge themes like Neon Pulse or Cyber Grid.</li>
+        <li><strong>Don't Rush:</strong> Take a deep breath before difficult jumps. Precision beats speed every time.</li>
+      </ul>
+
+      <h2 id="faq">Frequently Asked Questions (FAQ)</h2>
+      
+      <h3>Is Sky Bridge Z free to play?</h3>
+      <p>Yes! Sky Bridge Z is 100% free to play directly in your browser. No download or installation is required.</p>
+
+      <h3>Can I play on mobile?</h3>
+      <p>Absolutely. The game is fully optimized for mobile devices, tablets, and desktop computers. It supports touch controls for a seamless experience on iPhone and Android.</p>
+
+      <h3>How do I unlock new skins?</h3>
+      <p>You can unlock new character skins and bridge trails by collecting Gems during gameplay or by reaching specific high scores. Check the "Store" and "Characters" menu in the game for details.</p>
+    </div>
+
+    <div style="width:100%; padding: 40px 20px; background: rgba(0,0,0,0.5); text-align: center; color: rgba(255,255,255,0.4); font-size: 13px;">
+      <div style="margin-bottom: 20px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <a href="privacy.html" style="color: inherit; text-decoration: none;">Privacy Policy</a>
         <span>|</span>
-        <a href="#" style="color: inherit; text-decoration: none;">Terms of Service</a>
+        <a href="terms.html" style="color: inherit; text-decoration: none;">Terms of Service</a>
         <span>|</span>
-        <a href="#" style="color: inherit; text-decoration: none;">Contact</a>
+        <a href="mailto:contact@skybridgez.com" style="color: inherit; text-decoration: none;">Contact Us</a>
       </div>
-      <p style="margin-top: 20px; font-size: 11px; opacity: 0.5;">
-        &copy; 2026 Sky Bridge Z. All rights reserved.
+      <p>
+        &copy; 2026 Sky Bridge Z. All rights reserved. <br>
+        A fun HTML5 game for everyone.
       </p>
     </div>
   </div>
