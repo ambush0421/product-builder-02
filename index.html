@@ -1003,6 +1003,10 @@
         canvas.width = Math.floor(rect.width * dpr);
         canvas.height = Math.floor(rect.height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (!state.running) {
+          state.platformY = Math.floor(rect.height * 0.72);
+        }
       }
       window.addEventListener('resize', resize);
 
@@ -1175,7 +1179,7 @@
         platformY: 0,
         // bridge
         bridgeLen: 0,
-        bridgeAngle: 0, // 0=up, -90=flat
+        bridgeAngle: 0, // 0=up, 90=flat
         bridgeDropVel: 0,
         // platforms
         platforms: [],
@@ -1558,6 +1562,7 @@
       // ------------------ Character & Physics Tuning ------------------
       const PHYSICS = {
         gravity: 2800, // degrees/s^2 for bridge
+        walkSpeed: 320, // px/s
         bounceHeight: 14,
         bounceFreq: 0.15
       };
