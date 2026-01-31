@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sky Bridge Z - Haptic</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f0c29;
+      overflow: hidden;
+      font-family: 'Fredoka One', cursive;
+      touch-action: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Overlays */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .top-bar {
+      width: 100%;
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-left: 16px;
+      padding-right: 16px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .gem-display {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #2ecc71;
+      font-size: clamp(14px, 2.4vw, 20px);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      pointer-events: auto;
+    }
+
+    #score-board {
+      font-size: clamp(44px, 9vw, 90px);
+      color: white;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      margin-top: 5vh;
+      transition: transform 0.1s;
+    }
+
+    #best-score {
+      font-size: clamp(14px, 2.6vw, 20px);
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 10px;
+    }
+
+    /* Screens */
+    .screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 12, 41, 0.98);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      opacity: 1;
+      transition: opacity 0.3s;
+      pointer-events: auto;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+
+    h1 {
+      color: #fff;
+      font-size: clamp(38px, 8vw, 60px);
+      margin-bottom: 20px;
+      text-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+      line-height: 0.95;
+    }
+
+    h1 span {
+      color: #f1c40f;
+    }
+
+    /* Buttons */
+    .btn-start {
+      background: transparent;
+      border: 4px solid #f1c40f;
+      color: #f1c40f;
+      padding: 18px 46px;
+      font-size: clamp(18px, 4.2vw, 30px);
+      font-family: inherit;
+      font-weight: 800;
+      border-radius: 999px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .btn {
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 12px 22px;
+      font-size: clamp(14px, 3.2vw, 20px);
+      font-family: inherit;
+      border-radius: 999px;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+
+    .btn:active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-retry {
+      background: #f1c40f;
+      color: #d35400;
+      border: none;
+      font-weight: bold;
+      font-size: clamp(18px, 4.2vw, 28px);
+      padding: 16px 46px;
+      border-radius: 999px;
+    }
+
+    /* VFX */
+    .perfect-text {
+      position: absolute;
+      color: white;
+      font-size: clamp(22px, 5vw, 40px);
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 15;
+      text-shadow: 0 0 20px #f1c40f;
+      animation: floatUp 0.8s forwards;
+      transform: translate(-50%, -50%);
+    }
+
+    /* 누락되었던 gem-gain-text 스타일 추가 */
+    .gem-gain-text {
+      position: absolute;
+      font-size: clamp(18px, 4vw, 28px);
+      font-weight: 800;
+      pointer-events: none;
+      z-index: 15;
+      text-shadow: 0 0 14px rgba(46, 204, 113, 0.9);
+      animation: floatUp 0.8s forwards;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translate(-50%, -50%) translateY(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) translateY(-80px);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer">
+      <div class="top-bar">
+        <div class="gem-display"><span>💎</span> <span id="ui-gem-count">0</span></div>
+      </div>
+      <div id="score-board">0</div>
+      <div id="best-score">BEST: 0</div>
+    </div>
+
+    <!-- START -->
+    <div id="start-screen" class="screen">
+      <h1>SKY<br><span>BRIDGE Z</span></h1>
+      <button class="btn-start" id="start-btn">PLAY</button>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="game-over-screen" class="screen hidden">
+      <h1 style="color: #ff7675;">FAILED</h1>
+      <p id="result-msg" style="font-size: clamp(32px, 7vw, 50px); color: white; margin: 0 0 28px 0; font-weight:bold;">
+        0</p>
+      <button class="btn-retry" id="retry-btn">RETRY</button>
+      <button class="btn" id="menu-btn">MAIN MENU</button>
+    </div>
+  </div>
+
+  <script>
+    /* --- ROBUST GAME ENGINE WITH HAPTICS (FIXED + RESPONSIVE) --- */
+
+    const Sound = {
+      ctx: null,
+      growOsc: null,
+      growGain: null,
+
+      init() {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => { });
+      },
+
+      vibrate(pattern) {
+        try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { }
+      },
+
+      playTone(freq, type, dur, vol = 0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        g.gain.setValueAtTime(vol, this.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        osc.connect(g);
+        g.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + dur);
+        osc.onended = () => {
+          try { osc.disconnect(); } catch (e) { }
+          try { g.disconnect(); } catch (e) { }
+        };
+      },
+
+      startGrow() {
+        if (!this.ctx) return;
+        this.stopGrow();
+
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, this.ctx.currentTime + 2);
+
+        g.gain.setValueAtTime(0.05, this.ctx.currentTime);
+
+        osc.connect(g);
+        g.connect(this.ctx.destination);
+        osc.start();
+
+        this.growOsc = osc;
+        this.growGain = g;
+      },
+
+      stopGrow() {
+        if (this.growOsc) {
+          try { this.growOsc.stop(); } catch (e) { }
+          try { this.growOsc.disconnect(); } catch (e) { }
+          this.growOsc = null;
+        }
+        if (this.growGain) {
+          try { this.growGain.disconnect(); } catch (e) { }
+          this.growGain = null;
+        }
+      },
+
+      kick() { this.playTone(150, 'square', 0.1); this.vibrate(10); },
+      impact() { this.playTone(100, 'sawtooth', 0.2, 0.2); this.vibrate(30); },
+      perfect() {
+        this.playTone(523, 'sine', 0.3);
+        setTimeout(() => this.playTone(659, 'sine', 0.3), 50);
+        setTimeout(() => this.playTone(783, 'sine', 0.5), 100);
+        this.vibrate([50, 30, 50]);
+      },
+      score() { this.playTone(440, 'sine', 0.2, 0.05); this.vibrate(10); },
+      fail() { this.playTone(100, 'sawtooth', 0.5, 0.2); this.vibrate(200); },
+      gem() {
+        this.playTone(1200, 'sine', 0.1);
+        setTimeout(() => this.playTone(1800, 'sine', 0.1), 80);
+        this.vibrate([10, 50, 10]);
+      }
+    };
+
+    const GameData = {
+      gems: 0,
+      inventory: { chars: ['chick'], themes: ['neon'], trails: ['none'] },
+      equipped: { char: 'chick', theme: 'neon', trail: 'none' },
+
+      load() {
+        try {
+          const g = localStorage.getItem('sbz_gems');
+          const i = localStorage.getItem('sbz_inventory');
+          const e = localStorage.getItem('sbz_equipped');
+          if (g) this.gems = parseInt(g, 10) || 0;
+          if (i) this.inventory = JSON.parse(i);
+          if (e) this.equipped = JSON.parse(e);
+          if (!this.inventory?.chars || !this.inventory?.themes || !this.inventory?.trails) throw new Error("Corrupt");
+        } catch (err) {
+          this.gems = 0;
+          this.inventory = { chars: ['chick'], themes: ['neon'], trails: ['none'] };
+          this.equipped = { char: 'chick', theme: 'neon', trail: 'none' };
+          this.save();
+        }
+      },
+      save() {
+        localStorage.setItem('sbz_gems', String(this.gems));
+        localStorage.setItem('sbz_inventory', JSON.stringify(this.inventory));
+        localStorage.setItem('sbz_equipped', JSON.stringify(this.equipped));
+      }
+    };
+
+    function updateGemUI() {
+      const el = document.getElementById('ui-gem-count');
+      if (el) el.innerText = GameData.gems;
+    }
+
+    window.addEventListener('load', () => {
+      GameData.load();
+
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d', { alpha: true });
+
+      let W = 0, H = 0;
+      let animId = null;
+
+      const CONF = {
+        groundHeight: 0,
+        playerSize: 32,
+        bridgeW: 8,
+        gravity: 0.8,
+        walkSpeed: 10
+      };
+
+      const STATE = { IDLE: 0, GROWING: 1, ROTATING: 2, WALKING: 3, SCROLLING: 4, FALLING: 5, GAMEOVER: 6 };
+      let gameState = STATE.GAMEOVER;
+
+      let score = 0;
+      let bestScore = parseInt(localStorage.getItem('sbz_final_best'), 10) || 0;
+
+      let platforms = [], particles = [], bgStars = [];
+      let bridge = { len: 0, angle: -90, x: 0, y: 0, vel: 0, success: false, perfect: false };
+      let player = { x: 0, y: 0, tx: 0, vy: 0 };
+      let shake = 0, globalFrame = 0;
+
+      const MODES = [
+        { name: 'EASY', speed: 4, tol: 15, color: '#2ecc71' },
+        { name: 'NORMAL', speed: 7, tol: 8, color: '#3498db' },
+        { name: 'HARD', speed: 13, tol: 5, color: '#e74c3c' }
+      ];
+      let modeIdx = 1;
+
+      document.getElementById('best-score').innerText = `BEST: ${bestScore}`;
+      updateGemUI();
+
+      // ---- Responsive sizing (fixed) ----
+      function resizeCanvas() {
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        W = Math.floor(window.innerWidth);
+        H = Math.floor(window.innerHeight);
+
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw using CSS pixels
+
+        CONF.groundHeight = Math.floor(H * 0.25);
+        CONF.playerSize = Math.max(24, Math.min(36, Math.floor(Math.min(W, H) * 0.06)));
+        CONF.bridgeW = Math.max(6, Math.floor(CONF.playerSize * 0.25));
+        CONF.walkSpeed = Math.max(8, Math.floor(CONF.playerSize * 0.3));
+
+        // 별은 화면 기준이므로 리사이즈 시 재생성
+        bgStars = [];
+        for (let i = 0; i < 100; i++) {
+          bgStars.push({ x: Math.random() * W, y: Math.random() * H, size: Math.random() * 2, speed: Math.random() * 0.3 });
+        }
+      }
+
+      function reflowOnResize() {
+        // 안전하게: 게임오버/대기 상태에서는 월드를 다시 "정상 위치"로 재배치
+        // 진행 중(걷기/회전/스크롤/낙하)엔 갑자기 점프하면 이상하므로 최소한만 처리
+        if (gameState === STATE.GAMEOVER) { draw(); return; }
+
+        if (gameState === STATE.IDLE || gameState === STATE.GROWING) {
+          // 첫 플랫폼을 50px에 고정 재정렬
+          if (platforms.length >= 1) {
+            const p0 = platforms[0];
+            const dx = 50 - p0.x;
+            platforms.forEach(p => p.x += dx);
+            player.x += dx;
+            bridge.x += dx;
+
+            // 바닥/플레이어 y 재계산
+            player.y = H - CONF.groundHeight - CONF.playerSize;
+            bridge.y = H - CONF.groundHeight;
+          }
+        } else {
+          // 진행 중엔 최소한 y만 맞춤
+          player.y = Math.min(player.y, H - CONF.groundHeight - CONF.playerSize);
+          bridge.y = H - CONF.groundHeight;
+        }
+      }
+
+      // ---- Game setup ----
+      function addPlatform(fixedX, fixedW) {
+        let x, w;
+        if (fixedX !== undefined) {
+          x = fixedX; w = fixedW;
+        } else {
+          const last = platforms[platforms.length - 1];
+          w = Math.floor(Math.random() * (90 - 34)) + 34;
+
+          const minG = 40;
+          const maxGCap = 300;
+          const maxG = Math.min(maxGCap, Math.max(minG + 1, W - 50 - w - (last.x + last.w)));
+          x = (last.x + last.w) + Math.floor(Math.random() * (maxG - minG)) + minG;
+        }
+        const hasGem = (fixedX === undefined) && Math.random() < 0.3;
+        platforms.push({ x, w, h: CONF.groundHeight, isTarget: !!fixedX, hasGem });
+      }
+
+      function resetBridge() {
+        if (platforms.length === 0) return;
+        const p = platforms[0];
+        bridge.len = 0;
+        bridge.angle = -90;
+        bridge.vel = 0;
+        bridge.success = false;
+        bridge.perfect = false;
+        bridge.x = p.x + p.w - 5;
+        bridge.y = H - CONF.groundHeight;
+      }
+
+      function initGame() {
+        Sound.init(); // unlock audio
+        score = 0;
+        document.getElementById('score-board').innerText = score;
+
+        platforms = [];
+        particles = [];
+
+        addPlatform(50, Math.max(70, Math.floor(W * 0.18))); // 반응형 첫 플랫폼 너비
+        addPlatform();
+
+        const p1 = platforms[0];
+        player.x = p1.x + p1.w - CONF.playerSize - 10;
+        player.y = H - CONF.groundHeight - CONF.playerSize;
+        player.vy = 0;
+
+        resetBridge();
+
+        gameState = STATE.IDLE;
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+
+        if (animId) cancelAnimationFrame(animId);
+        loop();
+      }
+
+      function loop() {
+        if (gameState !== STATE.GAMEOVER) {
+          update();
+          draw();
+          animId = requestAnimationFrame(loop);
+        }
+      }
+
+      function update() {
+        globalFrame++;
+
+        bgStars.forEach(s => {
+          s.x -= s.speed * (gameState === STATE.SCROLLING ? 5 : 0.5);
+          if (s.x < 0) s.x = W;
+        });
+
+        if (gameState === STATE.GROWING) {
+          bridge.len += MODES[modeIdx].speed;
+          shake = 1;
+          if (Math.random() < 0.3) spawnParticle(bridge.x, bridge.y - bridge.len, '#fff', 2);
+        } else if (gameState === STATE.ROTATING) {
+          bridge.vel += CONF.gravity;
+          bridge.angle += bridge.vel;
+          if (bridge.angle >= 0) {
+            bridge.angle = 0;
+            shake = 8;
+            Sound.impact();
+            checkResult();
+          }
+        } else if (gameState === STATE.WALKING) {
+          player.x += CONF.walkSpeed;
+          player.y = H - CONF.groundHeight - CONF.playerSize - Math.abs(Math.sin(player.x * 0.15) * 8);
+
+          const pc = player.x + CONF.playerSize / 2;
+          platforms.forEach(p => {
+            if (p.hasGem && Math.abs(pc - (p.x + p.w / 2)) < 30) {
+              p.hasGem = false;
+              GameData.gems++;
+              GameData.save();
+              Sound.gem();
+              updateGemUI();
+              showFloatText("+1", pc, player.y, '#2ecc71', false);
+            }
+          });
+
+          if (player.x >= player.tx) {
+            player.x = player.tx;
+            player.y = H - CONF.groundHeight - CONF.playerSize;
+
+            if (bridge.success) {
+              gameState = STATE.SCROLLING;
+              let pts = 1;
+
+              if (bridge.perfect) {
+                pts++;
+                Sound.perfect();
+                showFloatText("PERFECT!", W / 2, H / 2 - 100, '#fff', true);
+                spawnExplosion(player.x, player.y, '#f1c40f');
+              } else {
+                Sound.score();
+              }
+
+              score += pts;
+              document.getElementById('score-board').innerText = score;
+            } else {
+              gameState = STATE.FALLING;
+              player.vy = 0;
+              Sound.fail();
+            }
+          }
+        } else if (gameState === STATE.SCROLLING) {
+          const spd = Math.max(10, Math.floor(W * 0.02));
+          if (platforms.length < 2) return;
+
+          if (platforms[1].x > 50) {
+            platforms.forEach(p => p.x -= spd);
+            player.x -= spd;
+            bridge.x -= spd;
+            particles.forEach(p => p.x -= spd);
+          } else {
+            const diff = 50 - platforms[1].x;
+            platforms.forEach(p => p.x += diff);
+            player.x += diff;
+            bridge.x += diff;
+
+            platforms.shift();
+            addPlatform();
+
+            const p0 = platforms[0];
+            p0.x = 50;
+            player.x = p0.x + p0.w - CONF.playerSize - 10;
+            bridge.x = p0.x + p0.w - 5;
+
+            resetBridge();
+            gameState = STATE.IDLE;
+          }
+        } else if (gameState === STATE.FALLING) {
+          player.vy += 1.5;
+          player.y += player.vy;
+          bridge.angle += 3;
+          if (player.y > H + 100) gameOver();
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function checkResult() {
+        if (platforms.length < 2) return;
+        const p = platforms[1];
+        const be = bridge.x + bridge.len;
+
+        if (be >= p.x && be <= p.x + p.w) {
+          player.tx = p.x + p.w - CONF.playerSize - 10;
+          bridge.success = true;
+          bridge.perfect = Math.abs(be - (p.x + p.w / 2)) < MODES[modeIdx].tol;
+        } else {
+          player.tx = bridge.x + bridge.len;
+          bridge.success = false;
+          bridge.perfect = false;
+        }
+        gameState = STATE.WALKING;
+      }
+
+      function gameOver() {
+        gameState = STATE.GAMEOVER;
+        Sound.stopGrow();
+
+        if (score > bestScore) {
+          bestScore = score;
+          localStorage.setItem('sbz_final_best', String(bestScore));
+          document.getElementById('best-score').innerText = `BEST: ${bestScore}`;
+        }
+        document.getElementById('result-msg').innerText = score;
+        document.getElementById('game-over-screen').classList.remove('hidden');
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Grid
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 1.5;
+        const cx = W / 2;
+
+        for (let i = -W; i <= W * 2; i += 100) {
+          ctx.beginPath();
+          ctx.moveTo(cx + (i - cx) * 0.1, H * 0.4);
+          ctx.lineTo(i, H);
+          ctx.stroke();
+        }
+
+        const off = (globalFrame * 1.5) % 80;
+        for (let j = 0; j < H; j += 80) {
+          const y = j + off;
+          if (y < H * 0.4) continue;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Stars
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        bgStars.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill(); });
+
+        if (shake > 0) {
+          ctx.save();
+          ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+          shake *= 0.9;
+          if (shake < 0.5) shake = 0;
+        }
+
+        const gy = H - CONF.groundHeight;
+
+        platforms.forEach(p => {
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.fillRect(p.x + 8, gy + 8, p.w, p.h);
+
+          const grd = ctx.createLinearGradient(p.x, gy, p.x, gy + p.h);
+          grd.addColorStop(0, '#7f8c8d');
+          grd.addColorStop(1, '#2c3e50');
+
+          ctx.fillStyle = grd;
+          ctx.fillRect(p.x, gy, p.w, p.h);
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
+          ctx.strokeRect(p.x, gy, p.w, p.h);
+
+          if (p.isTarget) {
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillRect(p.x + p.w / 2 - 3, gy, 6, 6);
+          }
+
+          if (p.hasGem) {
+            const gx = p.x + p.w / 2;
+            const gyy = gy - 20 + Math.sin(globalFrame * 0.1) * 5;
+            ctx.save();
+            ctx.translate(gx, gyy);
+            ctx.rotate(globalFrame * 0.05);
+            ctx.fillStyle = "#2ecc71";
+            ctx.beginPath();
+            ctx.moveTo(0, -10); ctx.lineTo(8, 0); ctx.lineTo(0, 10); ctx.lineTo(-8, 0);
+            ctx.fill();
+            ctx.restore();
+          }
+        });
+
+        // Bridge
+        ctx.save();
+        ctx.translate(bridge.x, bridge.y);
+        ctx.rotate(bridge.angle * Math.PI / 180);
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "rgba(255,255,255,0.8)";
+
+        const bgrd = ctx.createLinearGradient(0, 0, bridge.len, 0);
+        bgrd.addColorStop(0, '#fff');
+        bgrd.addColorStop(1, gameState === STATE.GROWING ? '#f1c40f' : '#ccc');
+
+        ctx.fillStyle = bgrd;
+        ctx.fillRect(0, -CONF.bridgeW / 2, bridge.len, CONF.bridgeW);
+
+        if (gameState === STATE.GROWING) {
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(bridge.len, 0, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Player
+        ctx.fillStyle = "#f1c40f";
+        if (score >= 10) ctx.fillStyle = "#e74c3c";
+        if (score >= 20) ctx.fillStyle = "#ecf0f1";
+
+        ctx.fillRect(player.x, player.y, CONF.playerSize, CONF.playerSize);
+        ctx.fillStyle = "white";
+        ctx.fillRect(player.x + CONF.playerSize * 0.62, player.y + CONF.playerSize * 0.25, CONF.playerSize * 0.25, CONF.playerSize * 0.25);
+        ctx.fillStyle = "black";
+        ctx.fillRect(player.x + CONF.playerSize * 0.72, player.y + CONF.playerSize * 0.31, CONF.playerSize * 0.12, CONF.playerSize * 0.12);
+
+        // Particles
+        particles.forEach(p => {
+          ctx.globalAlpha = p.life;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.random() * 3 + 1, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+
+        if (shake > 0) ctx.restore();
+      }
+
+      // --- UTILS ---
+      function spawnParticle(x, y, c, s) {
+        particles.push({ x, y, vx: (Math.random() - 0.5) * s, vy: (Math.random() - 0.5) * s, life: 1.0, color: c });
+      }
+      function spawnExplosion(x, y, c) { for (let i = 0; i < 20; i++) spawnParticle(x, y, c, 10); }
+
+      function showFloatText(txt, x, y, c, isBig) {
+        const el = document.createElement('div');
+        el.innerText = txt;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.color = c;
+        el.className = isBig ? 'perfect-text' : 'gem-gain-text';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 900);
+      }
+
+      // ---- INPUT (fixed): bind to canvas only ----
+      let pointerDown = false;
+
+      function startGrowFromInput(e) {
+        if (gameState === STATE.IDLE) {
+          gameState = STATE.GROWING;
+          Sound.init();
+          Sound.startGrow();
+        }
+      }
+
+      function endGrowFromInput(e) {
+        if (gameState === STATE.GROWING) {
+          gameState = STATE.ROTATING;
+          Sound.stopGrow();
+          Sound.kick();
+          bridge.vel = 0;
+        }
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        // UI 버튼과 충돌 방지: 캔버스에서만 처리
+        e.preventDefault();
+        canvas.setPointerCapture?.(e.pointerId);
+        pointerDown = true;
+        startGrowFromInput(e);
+      }, { passive: false });
+
+      canvas.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        pointerDown = false;
+        endGrowFromInput(e);
+      }, { passive: false });
+
+      canvas.addEventListener('pointercancel', (e) => {
+        pointerDown = false;
+        endGrowFromInput(e);
+      });
+
+      // Buttons
+      document.getElementById('start-btn').addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+      document.getElementById('retry-btn').addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+      document.getElementById('menu-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+        gameState = STATE.GAMEOVER;
+        Sound.stopGrow();
+      });
+
+      // Resize
+      function onResize() {
+        resizeCanvas();
+        reflowOnResize();
+      }
+      window.addEventListener('resize', onResize);
+
+      // initial
+      onResize();
+      draw();
+    });
+  </script>
+</body>
+
+</html>
