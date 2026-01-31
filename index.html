@@ -1252,8 +1252,9 @@
       }
       function makeNextPlatform(prev) {
         // difficulty scaling by level
-        const gap = rand(90, 210) * (1 + Math.min(0.9, (state.level - 1) * 0.05));
-        const w = rand(82, 140) * (1 - Math.min(0.35, (state.level - 1) * 0.02));
+        // Reduced gap and width to fit more platforms on screen
+        const gap = rand(40, 140) * (1 + Math.min(0.9, (state.level - 1) * 0.05));
+        const w = rand(50, 100) * (1 - Math.min(0.35, (state.level - 1) * 0.02));
         return makePlatform(prev.x + prev.w + gap, prev.y, w);
       }
       function curPlatform() { return state.platforms[state.curIndex]; }
@@ -1362,13 +1363,16 @@
         const newNext = makePlatform(cp.x + cp.w + rand(110, 170), cp.y, rand(90, 140));
         state.platforms[state.curIndex] = cp;
         state.platforms[state.curIndex + 1] = newNext;
+        // Pre-generate more platforms
+        state.platforms.push(makeNextPlatform(newNext));
+        state.platforms.push(makeNextPlatform(state.platforms[state.platforms.length-1]));
         
         state.charX = cp.x + cp.w - 30;
 
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
         state.bridgeDropVel = 0;
-        state.targetCamX = cp.x - 70;
+        state.targetCamX = cp.x - 40; // Shift left to see more
 
         showOnly(null);
         syncHUD();
@@ -1448,14 +1452,14 @@
           state.running = false;
         }
 
-        // ensure platforms ahead
-        while (state.platforms.length < state.curIndex + 3) {
+        // ensure platforms ahead (Keep 5 ahead)
+        while (state.platforms.length < state.curIndex + 5) {
           state.platforms.push(makeNextPlatform(state.platforms[state.platforms.length - 1]));
         }
 
         // move camera
         const cp = curPlatform();
-        state.targetCamX = cp.x - 70;
+        state.targetCamX = cp.x - 40; // Shift left to see more
 
         // reset bridge
         state.bridgeLen = 0;
@@ -1737,7 +1741,7 @@
         // camera ease
         // If walking, camera follows character smoothly
         if (state.walking) {
-          const desiredCamX = state.charX - 100; // keep char somewhat left
+          const desiredCamX = state.charX - 80; // keep char somewhat left
           state.camX += (desiredCamX - state.camX) * (1 - Math.pow(0.001, dt));
         } else {
           state.camX += (state.targetCamX - state.camX) * (1 - Math.pow(0.001, dt));
