@@ -1155,6 +1155,9 @@
         running: false,
         holding: false,
         dropping: false,
+        walking: false,
+        charX: 0,
+        charTargetX: 0,
         // tuning (sensitivity affects grow speed)
         baseGrowSpeed: 420,       // px/s
         rotateSpeed: 520,         // deg/s
@@ -1189,6 +1192,7 @@
         state.running = true;
         state.holding = false;
         state.dropping = false;
+        state.walking = false;
 
         state.score = 0;
         state.combo = 1;
@@ -1211,6 +1215,9 @@
         const p0 = makePlatform(70, state.platformY, 110);
         const p1 = makeNextPlatform(p0);
         state.platforms.push(p0, p1);
+        
+        // Character starts on first platform
+        state.charX = p0.x + p0.w - 30; // slightly back from edge
 
         state.stars = Array.from({ length: 80 }, () => ({
           x: Math.random() * W * 1.8,
@@ -1250,7 +1257,7 @@
 
       // ------------------ Input ------------------
       function canInput() {
-        return state.running && !state.dropping && !isAnyModalOpen();
+        return state.running && !state.dropping && !state.walking && !isAnyModalOpen();
       }
       function onHoldStart() {
         if (!canInput()) return;
@@ -1340,6 +1347,7 @@
         state.running = true;
         state.holding = false;
         state.dropping = false;
+        state.walking = false;
 
         // soften penalty
         state.combo = 1;
@@ -1350,6 +1358,8 @@
         const newNext = makePlatform(cp.x + cp.w + rand(110, 170), cp.y, rand(90, 140));
         state.platforms[state.curIndex] = cp;
         state.platforms[state.curIndex + 1] = newNext;
+        
+        state.charX = cp.x + cp.w - 30;
 
         state.bridgeLen = 0;
         state.bridgeAngle = 0;
@@ -1398,6 +1408,18 @@
         const drip = isPerfect ? 2 : 1;
         grantGems(drip);
 
+        // Start walking
+        state.walking = true;
+        const np = nextPlatform();
+        // Target is near the end of the next platform
+        state.charTargetX = np.x + np.w - 30; 
+        
+        syncHUD();
+      }
+      
+      function finishCrossing() {
+        state.walking = false;
+        
         // progress
         state.curIndex++;
         state.level++;
@@ -1544,15 +1566,18 @@
         const cp = curPlatform();
         if (!cp) return;
         
-        // Calculate bounce based on camera X (distance traveled)
-        // Only bounce when running and not performing actions
-        const bounce = state.running && !state.holding && !state.dropping
-          ? Math.abs(Math.sin(state.camX * 0.04) * PHYSICS.bounceHeight)
+        // Calculate bounce based on character world position
+        // Only bounce when moving (walking)
+        const bounce = state.walking
+          ? Math.abs(Math.sin(state.charX * PHYSICS.bounceFreq) * PHYSICS.bounceHeight)
           : 0;
 
         const size = 28;
-        // Center on platform
-        const x = cp.x + cp.w * 0.5 - state.camX - size / 2;
+        // Use exact character world position
+        // If charX is not initialized yet (safety), fallback to platform end
+        const worldX = state.charX || (cp.x + cp.w - 30);
+        
+        const x = worldX - state.camX; // Screen X
         const y = cp.y - size - bounce;
 
         const ch = CHARACTERS.find(c => c.id === save.equippedChar) || CHARACTERS[0];
@@ -1661,10 +1686,23 @@
         last = now;
 
         // camera ease
-        state.camX += (state.targetCamX - state.camX) * (1 - Math.pow(0.001, dt));
+        // If walking, camera follows character smoothly
+        if (state.walking) {
+          const desiredCamX = state.charX - 100; // keep char somewhat left
+          state.camX += (desiredCamX - state.camX) * (1 - Math.pow(0.001, dt));
+        } else {
+          state.camX += (state.targetCamX - state.camX) * (1 - Math.pow(0.001, dt));
+        }
 
         if (state.running) {
-          if (state.holding) {
+          if (state.walking) {
+            state.charX += PHYSICS.walkSpeed * dt;
+            if (state.charX >= state.charTargetX) {
+              state.charX = state.charTargetX;
+              finishCrossing();
+            }
+          }
+          else if (state.holding) {
             state.bridgeLen += effectiveGrowSpeed() * dt;
             state.bridgeLen = Math.min(state.bridgeLen, 560);
           }
