@@ -1670,9 +1670,9 @@
           }
           if (state.dropping) {
             state.bridgeDropVel += PHYSICS.gravity * dt;
-            state.bridgeAngle -= state.bridgeDropVel * dt;
-            if (state.bridgeAngle <= -90) {
-              state.bridgeAngle = -90;
+            state.bridgeAngle += state.bridgeDropVel * dt;
+            if (state.bridgeAngle >= 90) {
+              state.bridgeAngle = 90;
               state.dropping = false;
               state.bridgeDropVel = 0;
               // Add a small shake or impact effect here if desired
