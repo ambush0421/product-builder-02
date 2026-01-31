@@ -5,6 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Sky Bridge Z (HTML Full)</title>
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg1: #05081a;
@@ -1540,7 +1542,8 @@
         ctx.shadowColor = color;
         ctx.shadowBlur = glow;
         ctx.fillStyle = color;
-        ctx.fillRect(x, y, w, h);
+        // Optimization: Use Math.floor for sharp rendering and better performance
+        ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
         ctx.restore();
       }
 
@@ -1663,16 +1666,16 @@
         const W = canvas.getBoundingClientRect().width;
         const H = canvas.getBoundingClientRect().height;
 
-        // stars parallax
+        // stars parallax (Optimized: use fillRect instead of arc)
         ctx.save();
         for (const s of state.stars) {
           const px = (s.x - state.camX * 0.15) % (W * 2);
           const x = px < 0 ? px + W * 2 : px;
           ctx.globalAlpha = s.a;
           ctx.fillStyle = "white";
-          ctx.beginPath();
-          ctx.arc(x, s.y, s.r, 0, Math.PI * 2);
-          ctx.fill();
+          // Drawing rectangles is much faster than circles on mobile
+          const size = Math.max(1, s.r * 1.5); 
+          ctx.fillRect(Math.floor(x), Math.floor(s.y), size, size);
         }
         ctx.restore();
 
@@ -1687,8 +1690,8 @@
           const t = (y - horizonY) / (H - horizonY);
           ctx.globalAlpha = 0.06 + t * 0.28;
           ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(W, y);
+          ctx.moveTo(0, Math.floor(y));
+          ctx.lineTo(W, Math.floor(y));
           ctx.stroke();
         }
 
